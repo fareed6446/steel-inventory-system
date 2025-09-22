@@ -7,12 +7,15 @@ import '../controllers/dashboard_controller.dart';
 import '../controllers/supabase_auth_controller.dart';
 import '../controllers/settings_controller.dart';
 import '../controllers/parties_controller.dart';
+import '../controllers/ledger_controller.dart';
 import '../services/supabase_service.dart';
+import '../services/ledger_service.dart';
 
 class DependencyInjection {
   static Future<void> init() async {
     // Services
     Get.put<SupabaseService>(SupabaseService(), permanent: true);
+    Get.put<LedgerService>(LedgerService(), permanent: true);
 
     // Controllers
     Get.put<SupabaseAuthController>(SupabaseAuthController(), permanent: true);
@@ -23,6 +26,7 @@ class DependencyInjection {
     Get.put<DashboardController>(DashboardController(), permanent: true);
     Get.put<SettingsController>(SettingsController(), permanent: true);
     Get.put<PartiesController>(PartiesController(), permanent: true);
+    Get.put<LedgerController>(LedgerController(), permanent: true);
   }
 
   static void dispose() {
