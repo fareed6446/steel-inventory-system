@@ -10,6 +10,7 @@ import 'stock_view.dart';
 import 'reports_view.dart';
 import 'settings_view.dart';
 import 'parties_view.dart';
+import 'ledger_view.dart';
 import '../core/theme_constants.dart';
 
 class MainNavigation extends StatefulWidget {
@@ -31,6 +32,7 @@ class _MainNavigationState extends State<MainNavigation> {
     const SalesView(),
     const StockView(),
     const PartiesView(),
+    const LedgerView(),
     const ReportsView(),
     const SettingsView(),
   ];
@@ -42,6 +44,7 @@ class _MainNavigationState extends State<MainNavigation> {
     'Sales',
     'Stock',
     'Parties',
+    'Ledger',
     'Reports',
     'Settings',
   ];
@@ -53,6 +56,7 @@ class _MainNavigationState extends State<MainNavigation> {
     Icons.sell,
     Icons.warehouse,
     Icons.people,
+    Icons.account_balance_wallet,
     Icons.analytics,
     Icons.settings,
   ];
