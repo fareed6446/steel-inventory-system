@@ -1,0 +1,102 @@
+name: Build Windows Application
+
+on:
+  push:
+    branches: [ main, master ]
+  pull_request:
+    branches: [ main, master ]
+  workflow_dispatch:
+
+jobs:
+  build-windows:
+    runs-on: windows-latest
+    
+    steps:
+    - uses: actions/checkout@v4
+    
+    - name: Setup Flutter
+      uses: subosito/flutter-action@v2
+      with:
+        flutter-version: '3.35.3'
+        channel: 'stable'
+    
+    - name: Install dependencies
+      run: flutter pub get
+    
+    - name: Generate Hive adapters
+      run: flutter packages pub run build_runner build --delete-conflicting-outputs
+    
+    - name: Build Windows application
+      run: flutter build windows --release
+    
+    - name: Create installer with Inno Setup
+      run: |
+        # Download and install Inno Setup
+        $url = "https://files.jrsoftware.org/is/6/innosetup-6.2.2.exe"
+        $output = "$env:TEMP\innosetup.exe"
+        Invoke-WebRequest -Uri $url -OutFile $output
+        Start-Process -FilePath $output -ArgumentList "/SILENT" -Wait
+        
+        # Create installer script
+        $scriptContent = @"
+        [Setup]
+        AppName=Steel Factory Inventory Management
+        AppVersion=1.0.0
+        AppPublisher=Steel Factory
+        AppPublisherURL=https://steelfactory.com
+        AppSupportURL=https://steelfactory.com/support
+        AppUpdatesURL=https://steelfactory.com/updates
+        DefaultDirName={autopf}\SteelFactoryInventory
+        DefaultGroupName=Steel Factory Inventory
+        AllowNoIcons=yes
+        LicenseFile=LICENSE
+        OutputDir=build\installer
+        OutputBaseFilename=SteelFactoryInventory-Setup
+        Compression=lzma
+        SolidCompression=yes
+        WizardStyle=modern
+        PrivilegesRequired=admin
+        MinVersion=6.1sp1
+        
+        [Languages]
+        Name: "english"; MessagesFile: "compiler:Default.isl"
+        
+        [Tasks]
+        Name: "desktopicon"; Description: "{cm:CreateDesktopIcon}"; GroupDescription: "{cm:AdditionalIcons}"; Flags: unchecked
+        Name: "quicklaunchicon"; Description: "{cm:CreateQuickLaunchIcon}"; GroupDescription: "{cm:AdditionalIcons}"; Flags: unchecked; OnlyBelowVersion: 0,6.1
+        
+        [Files]
+        Source: "build\windows\x64\runner\Release\*"; DestDir: "{app}"; Flags: ignoreversion recursesubdirs createallsubdirs
+        Source: "LICENSE"; DestDir: "{app}"; Flags: ignoreversion
+        
+        [Icons]
+        Name: "{group}\Steel Factory Inventory"; Filename: "{app}\steel_factory_inventory.exe"
+        Name: "{group}\{cm:UninstallProgram,Steel Factory Inventory}"; Filename: "{uninstallexe}"
+        Name: "{autodesktop}\Steel Factory Inventory"; Filename: "{app}\steel_factory_inventory.exe"; Tasks: desktopicon
+        Name: "{userappdata}\Microsoft\Internet Explorer\Quick Launch\Steel Factory Inventory"; Filename: "{app}\steel_factory_inventory.exe"; Tasks: quicklaunchicon
+        
+        [Run]
+        Filename: "{app}\steel_factory_inventory.exe"; Description: "{cm:LaunchProgram,Steel Factory Inventory}"; Flags: nowait postinstall skipifsilent
+        
+        [UninstallDelete]
+        Type: filesandordirs; Name: "{app}"
+        "@
+        
+        $scriptContent | Out-File -FilePath "installer.iss" -Encoding UTF8
+        
+        # Run Inno Setup compiler
+        & "C:\Program Files (x86)\Inno Setup 6\ISCC.exe" installer.iss
+    
+    - name: Upload installer artifact
+      uses: actions/upload-artifact@v4
+      with:
+        name: SteelFactoryInventory-Windows-Installer
+        path: build/installer/SteelFactoryInventory-Setup.exe
+        retention-days: 30
+    
+    - name: Upload Windows build
+      uses: actions/upload-artifact@v4
+      with:
+        name: SteelFactoryInventory-Windows-Build
+        path: build/windows/x64/runner/Release/
+        retention-days: 30
