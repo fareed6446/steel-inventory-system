@@ -1,8 +1,13 @@
 import 'package:flutter/material.dart';
+import 'package:get/get.dart';
+import 'package:hive_flutter/hive_flutter.dart';
 import 'services/supabase_service.dart';
+import 'models/hive_user.dart';
 import 'core/dependency_injection.dart';
 import 'core/app_theme.dart';
 import 'views/splash_screen.dart';
+import 'views/main_navigation.dart';
+import 'views/stock_view.dart';
 
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();
@@ -14,6 +19,14 @@ void main() async {
   };
 
   try {
+    // Initialize Hive
+    await Hive.initFlutter();
+    print('Hive initialized successfully');
+
+    // Register Hive adapters
+    Hive.registerAdapter(HiveUserAdapter());
+    print('Hive adapters registered successfully');
+
     // Initialize Supabase
     await SupabaseService.initialize();
     print('Supabase initialized successfully');
@@ -34,11 +47,16 @@ class SteelFactoryInventoryApp extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return MaterialApp(
-      title: 'Steel Factory Inventory Management',
+    return GetMaterialApp(
+      title: 'Steel Factory',
       theme: AppTheme.lightTheme,
       home: const SplashScreen(),
       debugShowCheckedModeBanner: false,
+      getPages: [
+        GetPage(name: '/', page: () => const SplashScreen()),
+        GetPage(name: '/main', page: () => const MainNavigation()),
+        GetPage(name: '/stock', page: () => const StockView()),
+      ],
       builder: (context, child) {
         return MediaQuery(
           data: MediaQuery.of(context).copyWith(

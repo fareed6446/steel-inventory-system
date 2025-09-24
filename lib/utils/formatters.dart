@@ -2,7 +2,7 @@ import 'package:intl/intl.dart';
 
 class Formatters {
   static final NumberFormat _currencyFormat = NumberFormat.currency(
-    symbol: '\$',
+    symbol: 'PKR ',
     decimalDigits: 2,
   );
 

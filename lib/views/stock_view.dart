@@ -23,6 +23,26 @@ class StockView extends StatelessWidget {
 
     return Scaffold(
       backgroundColor: ThemeConstants.backgroundSecondary,
+      appBar: AppBar(
+        title: const Text('Stock Management'),
+        backgroundColor: ThemeConstants.primary,
+        foregroundColor: Colors.white,
+        elevation: 0,
+        leading: IconButton(
+          icon: const Icon(Icons.arrow_back),
+          onPressed: () {
+            Get.back();
+          },
+        ),
+        actions: [
+          IconButton(
+            icon: const Icon(Icons.home),
+            onPressed: () {
+              Get.offAllNamed('/main');
+            },
+          ),
+        ],
+      ),
       body: Padding(
         padding: ThemeConstants.sectionPadding,
         child: Column(

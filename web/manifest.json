@@ -1,11 +1,11 @@
 {
-    "name": "inventory_manager",
-    "short_name": "inventory_manager",
+    "name": "Steel Factory Inventory",
+    "short_name": "Steel Factory",
     "start_url": ".",
     "display": "standalone",
     "background_color": "#0175C2",
     "theme_color": "#0175C2",
-    "description": "A new Flutter project.",
+    "description": "Steel Factory Inventory Management System",
     "orientation": "portrait-primary",
     "prefer_related_applications": false,
     "icons": [

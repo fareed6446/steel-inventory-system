@@ -10,12 +10,14 @@ import '../controllers/parties_controller.dart';
 import '../controllers/ledger_controller.dart';
 import '../services/supabase_service.dart';
 import '../services/ledger_service.dart';
+import '../services/hive_service.dart';
 
 class DependencyInjection {
   static Future<void> init() async {
     // Services
     Get.put<SupabaseService>(SupabaseService(), permanent: true);
     Get.put<LedgerService>(LedgerService(), permanent: true);
+    Get.put<HiveService>(HiveService(), permanent: true);
 
     // Controllers
     Get.put<SupabaseAuthController>(SupabaseAuthController(), permanent: true);

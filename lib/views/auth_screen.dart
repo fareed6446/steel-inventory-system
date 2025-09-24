@@ -1,8 +1,8 @@
 import 'package:flutter/material.dart';
 import 'package:get/get.dart';
 import '../controllers/supabase_auth_controller.dart';
+import '../services/hive_service.dart';
 import 'main_navigation.dart';
-import '../core/theme_constants.dart';
 
 class AuthScreen extends StatefulWidget {
   const AuthScreen({super.key});
@@ -47,6 +47,29 @@ class _AuthScreenState extends State<AuthScreen> with TickerProviderStateMixin {
       Navigator.of(context).pushReplacement(
         MaterialPageRoute(builder: (context) => const MainNavigation()),
       );
+      return;
+    }
+
+    // Fallback: Check Hive for offline user data
+    try {
+      final HiveService hiveService = Get.find<HiveService>();
+
+      // Wait for Hive to be initialized
+      while (!hiveService.isInitialized.value) {
+        await Future.delayed(const Duration(milliseconds: 100));
+      }
+
+      if (hiveService.currentUser.value != null) {
+        print(
+          'Found offline user in Hive: ${hiveService.currentUser.value!.email}',
+        );
+        Navigator.of(context).pushReplacement(
+          MaterialPageRoute(builder: (context) => const MainNavigation()),
+        );
+      }
+    } catch (e) {
+      print('Error checking Hive user data: $e');
+      // Continue to show auth screen
     }
   }
 
@@ -87,9 +110,12 @@ class _AuthScreenState extends State<AuthScreen> with TickerProviderStateMixin {
     return Scaffold(
       body: Container(
         decoration: BoxDecoration(
-          gradient: ThemeConstants.getModuleGradientDecoration(
-            'dashboard',
-          ).gradient,
+          gradient: LinearGradient(
+            colors: [Colors.blue[50]!, Colors.blue[100]!, Colors.white],
+            begin: Alignment.topLeft,
+            end: Alignment.bottomRight,
+            stops: const [0.0, 0.5, 1.0],
+          ),
         ),
         child: SafeArea(
           child: Center(
@@ -115,23 +141,38 @@ class _AuthScreenState extends State<AuthScreen> with TickerProviderStateMixin {
   }
 
   Widget _buildAuthCard() {
-    return Card(
-      elevation: 8,
-      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
-      child: Container(
-        width: double.infinity,
-        constraints: const BoxConstraints(maxWidth: 400),
-        padding: const EdgeInsets.all(32.0),
+    return Container(
+      width: double.infinity,
+      constraints: const BoxConstraints(maxWidth: 450),
+      margin: const EdgeInsets.symmetric(horizontal: 16),
+      decoration: BoxDecoration(
+        color: Colors.white,
+        borderRadius: BorderRadius.circular(24),
+        boxShadow: [
+          BoxShadow(
+            color: Colors.black.withOpacity(0.1),
+            spreadRadius: 0,
+            blurRadius: 20,
+            offset: const Offset(0, 10),
+          ),
+          BoxShadow(
+            color: Colors.black.withOpacity(0.05),
+            spreadRadius: 0,
+            blurRadius: 40,
+            offset: const Offset(0, 20),
+          ),
+        ],
+      ),
+      child: Padding(
+        padding: const EdgeInsets.all(40.0),
         child: Column(
           mainAxisSize: MainAxisSize.min,
           children: [
             _buildHeader(),
-            const SizedBox(height: 32),
+            const SizedBox(height: 40),
             _buildForm(),
-            const SizedBox(height: 24),
+            const SizedBox(height: 32),
             _buildToggleMode(),
-            const SizedBox(height: 16),
-            _buildDemoCredentials(),
           ],
         ),
       ),
@@ -141,28 +182,32 @@ class _AuthScreenState extends State<AuthScreen> with TickerProviderStateMixin {
   Widget _buildHeader() {
     return Column(
       children: [
+        // Logo with modern styling
         Container(
-          width: 80,
-          height: 80,
+          padding: const EdgeInsets.all(20),
           decoration: BoxDecoration(
-            color: Colors.blue[100],
+            color: Colors.blue[50],
             borderRadius: BorderRadius.circular(20),
+            border: Border.all(color: Colors.blue[100]!, width: 2),
           ),
-          child: Icon(Icons.factory, size: 40, color: Colors.blue[800]),
+          child: Image.asset('assets/download12.png', width: 80, height: 80),
         ),
-        const SizedBox(height: 16),
-        Text(
-          'Steel Factory',
-          style: Theme.of(context).textTheme.headlineMedium?.copyWith(
-            fontWeight: FontWeight.bold,
-            color: Colors.blue[800],
-          ),
-        ),
+        const SizedBox(height: 24),
         Text(
           _isLoginMode ? 'Welcome Back' : 'Create Account',
-          style: Theme.of(
-            context,
-          ).textTheme.titleMedium?.copyWith(color: Colors.grey[600]),
+          style: TextStyle(
+            fontSize: 28,
+            fontWeight: FontWeight.bold,
+            color: Colors.grey[800],
+          ),
+        ),
+        const SizedBox(height: 8),
+        Text(
+          _isLoginMode
+              ? 'Sign in to your Steel Factory account'
+              : 'Join the Steel Factory team',
+          style: TextStyle(fontSize: 16, color: Colors.grey[600]),
+          textAlign: TextAlign.center,
         ),
       ],
     );
@@ -226,133 +271,255 @@ class _AuthScreenState extends State<AuthScreen> with TickerProviderStateMixin {
     required IconData icon,
     TextInputType? keyboardType,
   }) {
-    return TextField(
-      controller: controller,
-      keyboardType: keyboardType,
-      decoration: InputDecoration(
-        labelText: label,
-        prefixIcon: Icon(icon),
-        border: OutlineInputBorder(borderRadius: BorderRadius.circular(12)),
-        focusedBorder: OutlineInputBorder(
-          borderRadius: BorderRadius.circular(12),
-          borderSide: BorderSide(color: Colors.blue[800]!),
+    return Container(
+      decoration: BoxDecoration(
+        borderRadius: BorderRadius.circular(16),
+        boxShadow: [
+          BoxShadow(
+            color: Colors.grey.withOpacity(0.1),
+            spreadRadius: 0,
+            blurRadius: 10,
+            offset: const Offset(0, 2),
+          ),
+        ],
+      ),
+      child: TextField(
+        controller: controller,
+        keyboardType: keyboardType,
+        style: const TextStyle(fontSize: 16),
+        decoration: InputDecoration(
+          labelText: label,
+          labelStyle: TextStyle(color: Colors.grey[600], fontSize: 16),
+          prefixIcon: Container(
+            margin: const EdgeInsets.all(12),
+            padding: const EdgeInsets.all(8),
+            decoration: BoxDecoration(
+              color: Colors.blue[50],
+              borderRadius: BorderRadius.circular(8),
+            ),
+            child: Icon(icon, color: Colors.blue[600], size: 20),
+          ),
+          filled: true,
+          fillColor: Colors.grey[50],
+          border: OutlineInputBorder(
+            borderRadius: BorderRadius.circular(16),
+            borderSide: BorderSide.none,
+          ),
+          focusedBorder: OutlineInputBorder(
+            borderRadius: BorderRadius.circular(16),
+            borderSide: BorderSide(color: Colors.blue[400]!, width: 2),
+          ),
+          contentPadding: const EdgeInsets.symmetric(
+            horizontal: 20,
+            vertical: 20,
+          ),
         ),
       ),
     );
   }
 
   Widget _buildPasswordField() {
-    return TextField(
-      controller: _passwordController,
-      obscureText: _obscurePassword,
-      decoration: InputDecoration(
-        labelText: 'Password',
-        prefixIcon: const Icon(Icons.lock),
-        suffixIcon: IconButton(
-          icon: Icon(
-            _obscurePassword ? Icons.visibility : Icons.visibility_off,
+    return Container(
+      decoration: BoxDecoration(
+        borderRadius: BorderRadius.circular(16),
+        boxShadow: [
+          BoxShadow(
+            color: Colors.grey.withOpacity(0.1),
+            spreadRadius: 0,
+            blurRadius: 10,
+            offset: const Offset(0, 2),
           ),
-          onPressed: () {
-            setState(() {
-              _obscurePassword = !_obscurePassword;
-            });
-          },
-        ),
-        border: OutlineInputBorder(borderRadius: BorderRadius.circular(12)),
-        focusedBorder: OutlineInputBorder(
-          borderRadius: BorderRadius.circular(12),
-          borderSide: BorderSide(color: Colors.blue[800]!),
+        ],
+      ),
+      child: TextField(
+        controller: _passwordController,
+        obscureText: _obscurePassword,
+        style: const TextStyle(fontSize: 16),
+        decoration: InputDecoration(
+          labelText: 'Password',
+          labelStyle: TextStyle(color: Colors.grey[600], fontSize: 16),
+          prefixIcon: Container(
+            margin: const EdgeInsets.all(12),
+            padding: const EdgeInsets.all(8),
+            decoration: BoxDecoration(
+              color: Colors.blue[50],
+              borderRadius: BorderRadius.circular(8),
+            ),
+            child: Icon(Icons.lock, color: Colors.blue[600], size: 20),
+          ),
+          suffixIcon: Container(
+            margin: const EdgeInsets.all(12),
+            child: IconButton(
+              icon: Icon(
+                _obscurePassword ? Icons.visibility : Icons.visibility_off,
+                color: Colors.grey[600],
+              ),
+              onPressed: () {
+                setState(() {
+                  _obscurePassword = !_obscurePassword;
+                });
+              },
+            ),
+          ),
+          filled: true,
+          fillColor: Colors.grey[50],
+          border: OutlineInputBorder(
+            borderRadius: BorderRadius.circular(16),
+            borderSide: BorderSide.none,
+          ),
+          focusedBorder: OutlineInputBorder(
+            borderRadius: BorderRadius.circular(16),
+            borderSide: BorderSide(color: Colors.blue[400]!, width: 2),
+          ),
+          contentPadding: const EdgeInsets.symmetric(
+            horizontal: 20,
+            vertical: 20,
+          ),
         ),
       ),
     );
   }
 
   Widget _buildRoleDropdown() {
-    return DropdownButtonFormField<String>(
-      value: _selectedRole,
-      decoration: InputDecoration(
-        labelText: 'Role',
-        prefixIcon: const Icon(Icons.work),
-        border: OutlineInputBorder(borderRadius: BorderRadius.circular(12)),
-        focusedBorder: OutlineInputBorder(
-          borderRadius: BorderRadius.circular(12),
-          borderSide: BorderSide(color: Colors.blue[800]!),
-        ),
+    return Container(
+      decoration: BoxDecoration(
+        borderRadius: BorderRadius.circular(16),
+        boxShadow: [
+          BoxShadow(
+            color: Colors.grey.withOpacity(0.1),
+            spreadRadius: 0,
+            blurRadius: 10,
+            offset: const Offset(0, 2),
+          ),
+        ],
       ),
-      items: const [
-        DropdownMenuItem(value: 'operator', child: Text('Operator')),
-        DropdownMenuItem(value: 'manager', child: Text('Manager')),
-        DropdownMenuItem(value: 'admin', child: Text('Admin')),
-      ],
-      onChanged: (value) {
-        setState(() {
-          _selectedRole = value!;
-        });
-      },
+      child: DropdownButtonFormField<String>(
+        value: _selectedRole,
+        style: const TextStyle(fontSize: 16, color: Colors.black87),
+        decoration: InputDecoration(
+          labelText: 'Role',
+          labelStyle: TextStyle(color: Colors.grey[600], fontSize: 16),
+          prefixIcon: Container(
+            margin: const EdgeInsets.all(12),
+            padding: const EdgeInsets.all(8),
+            decoration: BoxDecoration(
+              color: Colors.blue[50],
+              borderRadius: BorderRadius.circular(8),
+            ),
+            child: Icon(Icons.work, color: Colors.blue[600], size: 20),
+          ),
+          filled: true,
+          fillColor: Colors.grey[50],
+          border: OutlineInputBorder(
+            borderRadius: BorderRadius.circular(16),
+            borderSide: BorderSide.none,
+          ),
+          focusedBorder: OutlineInputBorder(
+            borderRadius: BorderRadius.circular(16),
+            borderSide: BorderSide(color: Colors.blue[400]!, width: 2),
+          ),
+          contentPadding: const EdgeInsets.symmetric(
+            horizontal: 20,
+            vertical: 20,
+          ),
+        ),
+        items: const [
+          DropdownMenuItem(
+            value: 'operator',
+            child: Text('Operator', style: TextStyle(fontSize: 16)),
+          ),
+          DropdownMenuItem(
+            value: 'manager',
+            child: Text('Manager', style: TextStyle(fontSize: 16)),
+          ),
+          DropdownMenuItem(
+            value: 'admin',
+            child: Text('Admin', style: TextStyle(fontSize: 16)),
+          ),
+        ],
+        onChanged: (value) {
+          setState(() {
+            _selectedRole = value!;
+          });
+        },
+      ),
     );
   }
 
   Widget _buildSubmitButton() {
-    return SizedBox(
+    return Container(
       width: double.infinity,
-      height: 50,
+      height: 56,
+      decoration: BoxDecoration(
+        borderRadius: BorderRadius.circular(16),
+        gradient: LinearGradient(
+          colors: [Colors.blue[600]!, Colors.blue[800]!],
+          begin: Alignment.topLeft,
+          end: Alignment.bottomRight,
+        ),
+        boxShadow: [
+          BoxShadow(
+            color: Colors.blue.withOpacity(0.3),
+            spreadRadius: 0,
+            blurRadius: 15,
+            offset: const Offset(0, 5),
+          ),
+        ],
+      ),
       child: ElevatedButton(
         onPressed: _handleSubmit,
         style: ElevatedButton.styleFrom(
-          backgroundColor: Colors.blue[800],
-          foregroundColor: Colors.white,
+          backgroundColor: Colors.transparent,
+          shadowColor: Colors.transparent,
           shape: RoundedRectangleBorder(
-            borderRadius: BorderRadius.circular(12),
+            borderRadius: BorderRadius.circular(16),
           ),
         ),
         child: Text(
           _isLoginMode ? 'Sign In' : 'Sign Up',
-          style: const TextStyle(fontSize: 16, fontWeight: FontWeight.bold),
+          style: const TextStyle(
+            fontSize: 18,
+            fontWeight: FontWeight.bold,
+            color: Colors.white,
+          ),
         ),
       ),
     );
   }
 
   Widget _buildToggleMode() {
-    return Row(
-      mainAxisAlignment: MainAxisAlignment.center,
-      children: [
-        Text(
-          _isLoginMode
-              ? "Don't have an account? "
-              : 'Already have an account? ',
-          style: TextStyle(color: Colors.grey[600]),
-        ),
-        TextButton(
-          onPressed: _toggleMode,
-          child: Text(
-            _isLoginMode ? 'Sign Up' : 'Sign In',
-            style: TextStyle(
-              color: Colors.blue[800],
-              fontWeight: FontWeight.bold,
-            ),
-          ),
-        ),
-      ],
-    );
-  }
-
-  Widget _buildErrorMessage() {
     return Container(
-      padding: const EdgeInsets.all(12),
+      padding: const EdgeInsets.symmetric(vertical: 16, horizontal: 24),
       decoration: BoxDecoration(
-        color: Colors.red[50],
-        borderRadius: BorderRadius.circular(8),
-        border: Border.all(color: Colors.red[200]!),
+        color: Colors.grey[50],
+        borderRadius: BorderRadius.circular(12),
+        border: Border.all(color: Colors.grey[200]!, width: 1),
       ),
       child: Row(
+        mainAxisAlignment: MainAxisAlignment.center,
         children: [
-          Icon(Icons.error, color: Colors.red[600], size: 20),
-          const SizedBox(width: 8),
-          Expanded(
-            child: Text(
-              _authController.errorMessage.value,
-              style: TextStyle(color: Colors.red[600]),
+          Text(
+            _isLoginMode
+                ? "Don't have an account? "
+                : 'Already have an account? ',
+            style: TextStyle(color: Colors.grey[600], fontSize: 16),
+          ),
+          GestureDetector(
+            onTap: _toggleMode,
+            child: Container(
+              padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+              decoration: BoxDecoration(
+                color: Colors.blue[50],
+                borderRadius: BorderRadius.circular(8),
+              ),
+              child: Text(
+                _isLoginMode ? 'Sign Up' : 'Sign In',
+                style: TextStyle(
+                  color: Colors.blue[700],
+                  fontWeight: FontWeight.bold,
+                  fontSize: 16,
+                ),
+              ),
             ),
           ),
         ],
@@ -360,38 +527,41 @@ class _AuthScreenState extends State<AuthScreen> with TickerProviderStateMixin {
     );
   }
 
-  Widget _buildDemoCredentials() {
+  Widget _buildErrorMessage() {
     return Container(
       padding: const EdgeInsets.all(16),
       decoration: BoxDecoration(
-        color: Colors.blue[50],
+        color: Colors.red[50],
         borderRadius: BorderRadius.circular(12),
-        border: Border.all(color: Colors.blue[200]!),
+        border: Border.all(color: Colors.red[200]!, width: 1),
+        boxShadow: [
+          BoxShadow(
+            color: Colors.red.withOpacity(0.1),
+            spreadRadius: 0,
+            blurRadius: 8,
+            offset: const Offset(0, 2),
+          ),
+        ],
       ),
-      child: Column(
+      child: Row(
         children: [
-          Text(
-            'Demo Credentials',
-            style: TextStyle(
-              fontWeight: FontWeight.bold,
-              color: Colors.blue[800],
+          Container(
+            padding: const EdgeInsets.all(8),
+            decoration: BoxDecoration(
+              color: Colors.red[100],
+              borderRadius: BorderRadius.circular(8),
             ),
+            child: Icon(Icons.error_outline, color: Colors.red[600], size: 20),
           ),
-          const SizedBox(height: 8),
-          Text(
-            'Email: admin@steelfactory.com\nPassword: admin123',
-            style: TextStyle(color: Colors.blue[600]),
-            textAlign: TextAlign.center,
-          ),
-          const SizedBox(height: 8),
-          TextButton(
-            onPressed: () {
-              _emailController.text = 'admin@steelfactory.com';
-              _passwordController.text = 'admin123';
-            },
+          const SizedBox(width: 12),
+          Expanded(
             child: Text(
-              'Use Demo Credentials',
-              style: TextStyle(color: Colors.blue[800]),
+              _authController.errorMessage.value,
+              style: TextStyle(
+                color: Colors.red[700],
+                fontSize: 14,
+                fontWeight: FontWeight.w500,
+              ),
             ),
           ),
         ],

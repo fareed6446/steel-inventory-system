@@ -12,6 +12,7 @@ import 'settings_view.dart';
 import 'parties_view.dart';
 import 'ledger_view.dart';
 import '../core/theme_constants.dart';
+import '../widgets/steel_factory_logo.dart';
 
 class MainNavigation extends StatefulWidget {
   const MainNavigation({super.key});
@@ -86,12 +87,9 @@ class _MainNavigationState extends State<MainNavigation> {
                   padding: const EdgeInsets.all(20),
                   child: Column(
                     children: [
-                      Icon(
-                        Icons.factory,
-                        size: 48,
-                        color: ThemeConstants.textInverse,
-                      ),
-                      const SizedBox(height: 8),
+                      Image.asset(
+                        'assets/download12.png',height: 100,),
+                      const SizedBox(height: 12),
                       Text(
                         'Steel Factory',
                         style: Theme.of(context).textTheme.titleLarge?.copyWith(

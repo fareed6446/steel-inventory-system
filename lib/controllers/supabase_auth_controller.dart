@@ -1,10 +1,13 @@
 import 'package:get/get.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
 import '../models/user.dart' as app_models;
+import '../models/hive_user.dart';
 import '../services/supabase_service.dart';
+import '../services/hive_service.dart';
 
 class SupabaseAuthController extends GetxController {
   final SupabaseService _supabaseService = SupabaseService();
+  final HiveService _hiveService = Get.find<HiveService>();
 
   final Rx<app_models.User?> currentUser = Rx<app_models.User?>(null);
   final RxBool isLoading = false.obs;
@@ -44,6 +47,24 @@ class SupabaseAuthController extends GetxController {
         final appUser = app_models.User.fromMap(profile);
         currentUser.value = appUser;
         isLoggedIn.value = true;
+
+        // Save to Hive
+        print('Creating HiveUser from Supabase profile...');
+        final hiveUser = HiveUser.fromSupabase(
+          id: appUser.id,
+          email: appUser.email,
+          name: appUser.name,
+          role: appUser.role,
+          phone: appUser.phone,
+          department: appUser.department,
+          createdAt: appUser.createdAt,
+          updatedAt: appUser.updatedAt,
+          isActive: appUser.isActive,
+        );
+        print('HiveUser created: ${hiveUser.email}');
+        await _hiveService.setCurrentUser(hiveUser);
+        print('HiveUser saved to Hive service');
+
         print('User profile loaded: ${appUser.name}');
       } else {
         // Create a default user profile from Supabase auth data
@@ -54,15 +75,31 @@ class SupabaseAuthController extends GetxController {
           name: user.email!.split('@')[0], // Use email prefix as name
           role: 'operator', // Default role
           createdAt:
-              DateTime.tryParse(user.createdAt?.toString() ?? '') ??
-              DateTime.now(),
+              DateTime.tryParse(user.createdAt.toString()) ?? DateTime.now(),
           updatedAt:
-              DateTime.tryParse(user.updatedAt?.toString() ?? '') ??
-              DateTime.now(),
+              DateTime.tryParse(user.updatedAt.toString()) ?? DateTime.now(),
           isActive: true,
         );
         currentUser.value = defaultUser;
         isLoggedIn.value = true;
+
+        // Save to Hive
+        print('Creating HiveUser from default profile...');
+        final hiveUser = HiveUser.fromSupabase(
+          id: defaultUser.id,
+          email: defaultUser.email,
+          name: defaultUser.name,
+          role: defaultUser.role,
+          phone: defaultUser.phone,
+          department: defaultUser.department,
+          createdAt: defaultUser.createdAt,
+          updatedAt: defaultUser.updatedAt,
+          isActive: defaultUser.isActive,
+        );
+        print('Default HiveUser created: ${hiveUser.email}');
+        await _hiveService.setCurrentUser(hiveUser);
+        print('Default HiveUser saved to Hive service');
+
         print('Default user profile created: ${defaultUser.name}');
       }
     } catch (e) {
@@ -75,6 +112,9 @@ class SupabaseAuthController extends GetxController {
     print('User signed out');
     currentUser.value = null;
     isLoggedIn.value = false;
+
+    // Clear Hive current user
+    _hiveService.clearCurrentUser();
   }
 
   Future<bool> signUp({

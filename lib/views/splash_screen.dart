@@ -1,7 +1,10 @@
 import 'package:flutter/material.dart';
 import 'package:get/get.dart';
 import 'auth_screen.dart';
+import 'main_navigation.dart';
 import '../core/theme_constants.dart';
+import '../widgets/steel_factory_logo.dart';
+import '../services/hive_service.dart';
 
 class SplashScreen extends StatefulWidget {
   const SplashScreen({super.key});
@@ -19,6 +22,8 @@ class _SplashScreenState extends State<SplashScreen>
   late Animation<double> _logoAnimation;
   late Animation<double> _textAnimation;
   late Animation<double> _progressAnimation;
+
+  String _loadingText = 'Loading...';
 
   @override
   void initState() {
@@ -79,14 +84,72 @@ class _SplashScreenState extends State<SplashScreen>
     _navigateToNextScreen();
   }
 
-  void _navigateToNextScreen() {
+  void _navigateToNextScreen() async {
     try {
-      print('Splash screen completed, navigating to AuthScreen');
+      // Update loading text
+      setState(() {
+        _loadingText = 'Initializing...';
+      });
+
+      // Wait for Hive service to initialize
+      await Future.delayed(const Duration(milliseconds: 500));
+
+      // Update loading text
+      setState(() {
+        _loadingText = 'Checking user data...';
+      });
+
+      // Get Hive service
+      final HiveService hiveService = Get.find<HiveService>();
+
+      // Wait for Hive to be initialized
+      while (!hiveService.isInitialized.value) {
+        await Future.delayed(const Duration(milliseconds: 100));
+      }
+
+      // Debug Hive state
+      await hiveService.debugHiveState();
+
+      // Check if there's a current user in Hive
+      if (hiveService.currentUser.value != null) {
+        setState(() {
+          _loadingText = 'Welcome back!';
+        });
+
+        print('User found in Hive: ${hiveService.currentUser.value!.email}');
+        print('Navigating to Dashboard');
+
+        // Small delay to show welcome message
+        await Future.delayed(const Duration(milliseconds: 500));
+
+        Navigator.of(context).pushReplacement(
+          MaterialPageRoute(builder: (context) => const MainNavigation()),
+        );
+      } else {
+        setState(() {
+          _loadingText = 'Ready to start...';
+        });
+
+        print('No user found in Hive, navigating to AuthScreen');
+
+        // Small delay to show ready message
+        await Future.delayed(const Duration(milliseconds: 500));
+
+        Navigator.of(context).pushReplacement(
+          MaterialPageRoute(builder: (context) => const AuthScreen()),
+        );
+      }
+    } catch (e) {
+      print('Error navigating from splash screen: $e');
+      setState(() {
+        _loadingText = 'Error occurred...';
+      });
+
+      // Fallback to auth screen if there's an error
+      await Future.delayed(const Duration(milliseconds: 1000));
       Navigator.of(context).pushReplacement(
         MaterialPageRoute(builder: (context) => const AuthScreen()),
       );
-    } catch (e) {
-      print('Error navigating to auth screen: $e');
     }
   }
 
@@ -112,7 +175,7 @@ class _SplashScreenState extends State<SplashScreen>
           child: Column(
             mainAxisAlignment: MainAxisAlignment.center,
             children: [
-              // Animated Logo
+              // Animated Logo with Text
               AnimatedBuilder(
                 animation: _logoAnimation,
                 builder: (context, child) {
@@ -120,60 +183,23 @@ class _SplashScreenState extends State<SplashScreen>
                     scale: _logoAnimation.value.clamp(0.0, 1.0),
                     child: Opacity(
                       opacity: _logoAnimation.value.clamp(0.0, 1.0),
-                      child: Container(
-                        width: 120,
-                        height: 120,
-                        decoration: BoxDecoration(
-                          color: Colors.white,
-                          borderRadius: BorderRadius.circular(20),
-                          boxShadow: [
-                            BoxShadow(
-                              color: Colors.black.withOpacity(0.3),
-                              blurRadius: 20,
-                              offset: const Offset(0, 10),
-                            ),
-                          ],
-                        ),
-                        child: const Icon(
-                          Icons.factory,
-                          size: 60,
-                          color: Colors.blue,
-                        ),
-                      ),
+                      child: const SteelFactoryLogo(size: 400, showText: true),
                     ),
                   );
                 },
               ),
 
-              const SizedBox(height: 40),
-
-              // Animated Company Name
               AnimatedBuilder(
                 animation: _textAnimation,
                 builder: (context, child) {
                   return Opacity(
                     opacity: _textAnimation.value.clamp(0.0, 1.0),
-                    child: Column(
-                      children: [
-                        Text(
-                          'STEEL FACTORY',
-                          style: Theme.of(context).textTheme.headlineMedium
-                              ?.copyWith(
-                                color: Colors.white,
-                                fontWeight: FontWeight.bold,
-                                letterSpacing: 2,
-                              ),
-                        ),
-                        const SizedBox(height: 8),
-                        Text(
-                          'Inventory Management System',
-                          style: Theme.of(context).textTheme.titleMedium
-                              ?.copyWith(
-                                color: Colors.white70,
-                                letterSpacing: 1,
-                              ),
-                        ),
-                      ],
+                    child: Text(
+                      'Inventory Management System',
+                      style: Theme.of(context).textTheme.titleMedium?.copyWith(
+                        color: Colors.white70,
+                        letterSpacing: 1,
+                      ),
                     ),
                   );
                 },
@@ -212,7 +238,7 @@ class _SplashScreenState extends State<SplashScreen>
                         ),
                         const SizedBox(height: 16),
                         Text(
-                          'Loading...',
+                          _loadingText,
                           style: Theme.of(context).textTheme.bodyMedium
                               ?.copyWith(color: Colors.white70),
                         ),

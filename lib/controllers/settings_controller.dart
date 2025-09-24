@@ -6,7 +6,7 @@ class SettingsController extends GetxController {
   // Invoice Settings
   final RxString invoiceFormat = 'A4'.obs;
   final RxString invoiceOrientation = 'Portrait'.obs;
-  final RxString invoiceTemplate = 'Standard'.obs;
+  final RxString invoiceTemplate = 'Modern'.obs;
   final RxBool showCompanyLogo = true.obs;
   final RxBool showCompanyAddress = true.obs;
   final RxBool showCompanyPhone = true.obs;
@@ -66,7 +66,7 @@ class SettingsController extends GetxController {
       invoiceFormat.value = prefs.getString('invoice_format') ?? 'A4';
       invoiceOrientation.value =
           prefs.getString('invoice_orientation') ?? 'Portrait';
-      invoiceTemplate.value = prefs.getString('invoice_template') ?? 'Standard';
+      invoiceTemplate.value = prefs.getString('invoice_template') ?? 'Modern';
       showCompanyLogo.value = prefs.getBool('show_company_logo') ?? true;
       showCompanyAddress.value = prefs.getBool('show_company_address') ?? true;
       showCompanyPhone.value = prefs.getBool('show_company_phone') ?? true;
@@ -77,8 +77,7 @@ class SettingsController extends GetxController {
       invoiceHeader.value = prefs.getString('invoice_header') ?? '';
 
       // Company Information
-      companyName.value =
-          prefs.getString('company_name') ?? 'Steel Factory Ltd.';
+      companyName.value = prefs.getString('company_name') ?? 'Steel Factory';
       companyAddress.value =
           prefs.getString('company_address') ??
           'Industrial Area, City, Country';
@@ -207,7 +206,7 @@ class SettingsController extends GetxController {
     // Invoice Settings
     invoiceFormat.value = 'A4';
     invoiceOrientation.value = 'Portrait';
-    invoiceTemplate.value = 'Standard';
+    invoiceTemplate.value = 'Modern';
     showCompanyLogo.value = true;
     showCompanyAddress.value = true;
     showCompanyPhone.value = true;
